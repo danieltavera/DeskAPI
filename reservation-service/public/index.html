@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskAPI — Resources and Bookings</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>DeskAPI · Resources</h1>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Make a booking</h2>
+      <form id="booking-form">
+        <div>
+          <label for="booking-type">Resource type</label>
+          <select id="booking-type" required></select>
+        </div>
+        <div>
+          <label for="booking-resource">Resource</label>
+          <select id="booking-resource" required></select>
+        </div>
+        <div class="row">
+          <div>
+            <label for="booking-start">Start</label>
+            <input type="datetime-local" id="booking-start" required />
+          </div>
+          <div>
+            <label for="booking-end">End</label>
+            <input type="datetime-local" id="booking-end" required />
+          </div>
+        </div>
+        <button type="submit">Book</button>
+        <p id="booking-message" class="message"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>My bookings</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Resource</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bookings-rows">
+          <tr><td colspan="5">Loading bookings...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card hidden" id="admin-section">
+      <h2>Add resource (admin)</h2>
+      <form id="resource-form">
+        <div class="row">
+          <div>
+            <label for="resource-name">Name</label>
+            <input type="text" id="resource-name" required />
+          </div>
+          <div>
+            <label for="resource-type">Type</label>
+            <input type="text" id="resource-type" placeholder="room, tv, court..." required />
+          </div>
+        </div>
+        <div>
+          <label for="resource-location">Location</label>
+          <input type="text" id="resource-location" />
+        </div>
+        <button type="submit">Create resource</button>
+        <p id="resource-message" class="message"></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
