@@ -8,7 +8,8 @@
     "start:activity": "node activity-service/src/server.js",
     "dev:auth": "node --watch auth-service/src/server.js",
     "dev:reservation": "node --watch reservation-service/src/server.js",
-    "dev:activity": "node --watch activity-service/src/server.js"
+    "dev:activity": "node --watch activity-service/src/server.js",
+    "test": "node --test auth-service/tests/auth.test.js"
   },
   "dependencies": {
     "express": "^4.19.2",
