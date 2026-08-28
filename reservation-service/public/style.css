@@ -189,3 +189,14 @@ td input {
 .hidden {
   display: none;
 }
+
+.attribute-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.attribute-row input {
+  flex: 1;
+}

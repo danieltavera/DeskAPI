@@ -3,6 +3,54 @@ const typeSelect = document.getElementById('booking-type');
 const bookingsRows = document.getElementById('bookings-rows');
 const resourceTypeSelect = document.getElementById('resource-type-select');
 const resourceTypeNewInput = document.getElementById('resource-type-new');
+const resourceLocationSelect = document.getElementById('resource-location-select');
+const resourceLocationNewInput = document.getElementById('resource-location-new');
+
+// keep in sync with the <option> list in index.html — used to turn a state code back into "City, STATE"
+const AUSTRALIAN_CITIES = {
+  'AU-NSW': 'Sydney, NSW',
+  'AU-VIC': 'Melbourne, VIC',
+  'AU-QLD': 'Brisbane, QLD',
+  'AU-WA': 'Perth, WA',
+  'AU-SA': 'Adelaide, SA',
+  'AU-TAS': 'Hobart, TAS',
+  'AU-NT': 'Darwin, NT',
+  'AU-ACT': 'Canberra, ACT',
+};
+
+resourceLocationSelect.addEventListener('change', () => {
+  const isOther = resourceLocationSelect.value === '__other__';
+  resourceLocationNewInput.classList.toggle('hidden', !isOther);
+  resourceLocationNewInput.required = isOther;
+});
+
+const attributesList = document.getElementById('attributes-list');
+
+function addAttributeRow() {
+  const row = document.createElement('div');
+  row.className = 'attribute-row';
+  row.innerHTML = `
+    <input type="text" class="attribute-name" placeholder="Attribute (e.g. capacity)" />
+    <input type="text" class="attribute-info" placeholder="Info (e.g. 8)" />
+    <button type="button" class="btn-small btn-delete">Remove</button>
+  `;
+  row.querySelector('button').addEventListener('click', () => row.remove());
+  attributesList.appendChild(row);
+}
+
+document.getElementById('add-attribute-btn').addEventListener('click', addAttributeRow);
+
+function collectAttributes() {
+  const attributes = {};
+  attributesList.querySelectorAll('.attribute-row').forEach((row) => {
+    const name = row.querySelector('.attribute-name').value.trim();
+    const info = row.querySelector('.attribute-info').value.trim();
+    if (!name) return;
+    const numericInfo = Number(info);
+    attributes[name] = info !== '' && !Number.isNaN(numericInfo) ? numericInfo : info;
+  });
+  return Object.keys(attributes).length ? attributes : null;
+}
 
 let resourcesCache = [];
 let editingBookingId = null;
@@ -223,6 +271,7 @@ document.getElementById('booking-form').addEventListener('submit', async (e) => 
   } catch (err) {
     messageEl.textContent = err.message;
     messageEl.className = 'message error';
+    alert(err.message);
   }
 });
 
@@ -234,13 +283,26 @@ document.getElementById('resource-form').addEventListener('submit', async (e) =>
     resourceTypeSelect.value === '__new__'
       ? resourceTypeNewInput.value.trim()
       : resourceTypeSelect.value;
-  const location = document.getElementById('resource-location').value;
+
+  const isOtherLocation = resourceLocationSelect.value === '__other__';
+  const stateCode = isOtherLocation ? null : resourceLocationSelect.value || null;
+  const location = isOtherLocation
+    ? resourceLocationNewInput.value.trim()
+    : AUSTRALIAN_CITIES[resourceLocationSelect.value] || '';
+
+  if (!location) {
+    messageEl.textContent = 'Location is required';
+    messageEl.className = 'message error';
+    return;
+  }
+
+  const attributes = collectAttributes();
 
   try {
     const res = await fetch('/api/resources', {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ name, type, location }),
+      body: JSON.stringify({ name, type, location, stateCode, attributes }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Could not create resource');
@@ -248,6 +310,8 @@ document.getElementById('resource-form').addEventListener('submit', async (e) =>
     messageEl.className = 'message success';
     e.target.reset();
     resourceTypeNewInput.classList.add('hidden');
+    resourceLocationNewInput.classList.add('hidden');
+    attributesList.innerHTML = '';
     loadResourceTypes();
     loadResources();
   } catch (err) {

@@ -71,8 +71,25 @@
           </div>
         </div>
         <div>
-          <label for="resource-location">Location</label>
-          <input type="text" id="resource-location" />
+          <label for="resource-location-select">Location</label>
+          <select id="resource-location-select" required>
+            <option value="" disabled selected>Select a city</option>
+            <option value="AU-NSW">Sydney, NSW</option>
+            <option value="AU-VIC">Melbourne, VIC</option>
+            <option value="AU-QLD">Brisbane, QLD</option>
+            <option value="AU-WA">Perth, WA</option>
+            <option value="AU-SA">Adelaide, SA</option>
+            <option value="AU-TAS">Hobart, TAS</option>
+            <option value="AU-NT">Darwin, NT</option>
+            <option value="AU-ACT">Canberra, ACT</option>
+            <option value="__other__">+ Other (type manually)</option>
+          </select>
+          <input type="text" id="resource-location-new" class="hidden" placeholder="Custom location..." />
+        </div>
+        <div>
+          <label>Attributes (optional)</label>
+          <div id="attributes-list"></div>
+          <button type="button" id="add-attribute-btn" class="btn-small btn-edit">+ Add attribute</button>
         </div>
         <button type="submit">Create resource</button>
         <p id="resource-message" class="message"></p>

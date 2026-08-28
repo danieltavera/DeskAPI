@@ -1,5 +1,9 @@
 const bookingRepository = require('../interfaces/repositories/bookingRepository');
+const resourceRepository = require('../interfaces/repositories/resourceRepository');
+const { findHolidayForDate } = require('../infrastructure/http/holidayApiClient');
 const AppError = require('./AppError');
+
+const HOLIDAY_COUNTRY_CODE = process.env.HOLIDAY_COUNTRY_CODE || 'AU';
 
 async function updateBooking(id, { startTime, endTime }, currentUser) {
   const booking = await bookingRepository.findById(id);
@@ -14,6 +18,12 @@ async function updateBooking(id, { startTime, endTime }, currentUser) {
   const newEnd = endTime || booking.endTime;
   if (new Date(newEnd) <= new Date(newStart)) {
     throw new AppError('endTime must be after startTime', 400);
+  }
+
+  const resource = await resourceRepository.findById(booking.resourceId);
+  const holiday = await findHolidayForDate(HOLIDAY_COUNTRY_CODE, newStart, resource ? resource.stateCode : null);
+  if (holiday) {
+    throw new AppError(`Bookings are not allowed on public holidays (${holiday.name})`, 409);
   }
 
   const overlaps = await bookingRepository.hasOverlap({
