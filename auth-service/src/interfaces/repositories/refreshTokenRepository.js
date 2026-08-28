@@ -8,4 +8,9 @@ async function create({ userId, tokenHash, expiresAt }) {
   );
 }
 
-module.exports = { create };
+// wipes every leftover refresh token for this user on logout, keeping the table clean
+async function removeAllForUser(userId) {
+  await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+}
+
+module.exports = { create, removeAllForUser };

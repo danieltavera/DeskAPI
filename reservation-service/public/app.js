@@ -324,3 +324,17 @@ loadResources();
 loadResourceTypes();
 loadMyBookings();
 applyAdminVisibility();
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  try {
+    await fetch('http://localhost:3001/api/auth/logout', {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  } catch (err) {
+    // even if the request fails, clear the local session so the user isn't stuck
+  }
+  localStorage.removeItem('accessToken');
+  document.cookie = 'accessToken=; path=/; max-age=0';
+  window.location.href = 'http://localhost:3001';
+});

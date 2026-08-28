@@ -1,5 +1,6 @@
 const registerUser = require('../../use-cases/registerUser');
 const loginUser = require('../../use-cases/loginUser');
+const logoutUser = require('../../use-cases/logoutUser');
 const AppError = require('../../use-cases/AppError');
 
 async function register(req, res) {
@@ -28,4 +29,14 @@ async function login(req, res) {
   }
 }
 
-module.exports = { register, login };
+async function logout(req, res) {
+  try {
+    await logoutUser(req.user);
+    res.status(204).send(); // 204 Logged out, refresh tokens wiped
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+module.exports = { register, login, logout };
