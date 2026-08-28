@@ -37,6 +37,7 @@ forms.login.addEventListener('submit', async (e) => {
     // shared across services on other localhost ports (cookies ignore the port, unlike localStorage)
     document.cookie = `accessToken=${data.accessToken}; path=/; max-age=3600`;
     showMessage('Logged in successfully', 'success');
+    window.location.href = 'http://localhost:3002';
   } catch (err) {
     showMessage(err.message, 'error');
   }
@@ -56,7 +57,20 @@ forms.register.addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Could not register');
-    showMessage('Account created, you can now log in', 'success');
+    showMessage('Account created, logging you in...', 'success');
+
+    // auto-login right after registering so the user lands straight on the reservation page
+    const loginRes = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) throw new Error(loginData.message || 'Could not log in');
+
+    localStorage.setItem('accessToken', loginData.accessToken);
+    document.cookie = `accessToken=${loginData.accessToken}; path=/; max-age=3600`;
+    window.location.href = 'http://localhost:3002';
   } catch (err) {
     showMessage(err.message, 'error');
   }

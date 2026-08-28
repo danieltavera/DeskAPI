@@ -1,6 +1,8 @@
 const resourceSelect = document.getElementById('booking-resource');
 const typeSelect = document.getElementById('booking-type');
 const bookingsRows = document.getElementById('bookings-rows');
+const resourceTypeSelect = document.getElementById('resource-type-select');
+const resourceTypeNewInput = document.getElementById('resource-type-new');
 
 let resourcesCache = [];
 let editingBookingId = null;
@@ -8,6 +10,11 @@ let editingBookingId = null;
 function getCookie(name) {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? match[1] : null;
+}
+
+// this page requires a logged-in session — bounce back to auth-service if there's no token
+if (!getCookie('accessToken')) {
+  window.location.href = 'http://localhost:3001';
 }
 
 function getCurrentUserRole() {
@@ -36,7 +43,7 @@ function applyAdminVisibility() {
 
 async function loadResources() {
   try {
-    const res = await fetch('/api/resources');
+    const res = await fetch('/api/resources', { headers: authHeaders() });
     const resources = await res.json();
     resourcesCache = resources;
     renderTypeOptions(resources);
@@ -46,6 +53,24 @@ async function loadResources() {
     resourceSelect.innerHTML = '';
   }
 }
+
+async function loadResourceTypes() {
+  try {
+    const res = await fetch('/api/resource-types', { headers: authHeaders() });
+    const types = await res.json();
+    resourceTypeSelect.innerHTML =
+      types.map((t) => `<option value="${t.name}">${t.name}</option>`).join('') +
+      '<option value="__new__">+ Add new type...</option>';
+  } catch (err) {
+    resourceTypeSelect.innerHTML = '<option value="__new__">+ Add new type...</option>';
+  }
+}
+
+resourceTypeSelect.addEventListener('change', () => {
+  const isNew = resourceTypeSelect.value === '__new__';
+  resourceTypeNewInput.classList.toggle('hidden', !isNew);
+  resourceTypeNewInput.required = isNew;
+});
 
 function resourceName(resourceId) {
   const resource = resourcesCache.find((r) => String(r.id) === String(resourceId));
@@ -150,12 +175,16 @@ async function deleteBooking(id) {
 
 function renderTypeOptions(resources) {
   const types = [...new Set(resources.map((r) => r.type))];
-  typeSelect.innerHTML = types
-    .map((type) => `<option value="${type}">${type}</option>`)
-    .join('');
+  typeSelect.innerHTML =
+    '<option value="" disabled selected>Select your type</option>' +
+    types.map((type) => `<option value="${type}">${type}</option>`).join('');
 }
 
 function renderResourceOptions(selectedType) {
+  if (!selectedType) {
+    resourceSelect.innerHTML = '<option value="" disabled selected>Select your resource</option>';
+    return;
+  }
   const filtered = resourcesCache.filter((r) => r.type === selectedType);
   resourceSelect.innerHTML = filtered.length
     ? filtered.map((r) => `<option value="${r.id}">${r.name}</option>`).join('')
@@ -188,6 +217,8 @@ document.getElementById('booking-form').addEventListener('submit', async (e) => 
     messageEl.textContent = 'Booking created successfully';
     messageEl.className = 'message success';
     e.target.reset();
+    renderTypeOptions(resourcesCache);
+    renderResourceOptions('');
     loadMyBookings();
   } catch (err) {
     messageEl.textContent = err.message;
@@ -199,7 +230,10 @@ document.getElementById('resource-form').addEventListener('submit', async (e) =>
   e.preventDefault();
   const messageEl = document.getElementById('resource-message');
   const name = document.getElementById('resource-name').value;
-  const type = document.getElementById('resource-type').value;
+  const type =
+    resourceTypeSelect.value === '__new__'
+      ? resourceTypeNewInput.value.trim()
+      : resourceTypeSelect.value;
   const location = document.getElementById('resource-location').value;
 
   try {
@@ -213,6 +247,8 @@ document.getElementById('resource-form').addEventListener('submit', async (e) =>
     messageEl.textContent = 'Resource created successfully';
     messageEl.className = 'message success';
     e.target.reset();
+    resourceTypeNewInput.classList.add('hidden');
+    loadResourceTypes();
     loadResources();
   } catch (err) {
     messageEl.textContent = err.message;
@@ -221,5 +257,6 @@ document.getElementById('resource-form').addEventListener('submit', async (e) =>
 });
 
 loadResources();
+loadResourceTypes();
 loadMyBookings();
 applyAdminVisibility();
