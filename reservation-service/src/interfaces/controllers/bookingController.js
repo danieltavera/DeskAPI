@@ -3,6 +3,7 @@ const createBooking = require('../../use-cases/createBooking');
 const updateBooking = require('../../use-cases/updateBooking');
 const cancelBooking = require('../../use-cases/cancelBooking');
 const AppError = require('../../use-cases/AppError');
+const { logEvent } = require('../../infrastructure/http/activityLogger');
 
 function handleError(err, res) {
   if (err instanceof AppError) {
@@ -24,6 +25,7 @@ async function list(req, res) {
 async function create(req, res) {
   try {
     const booking = await createBooking(req.body, req.user);
+    logEvent('booking_created', req.user.sub, `Booking created for resource ${booking.resourceId}`);
     res.status(201).json(booking);
   } catch (err) {
     handleError(err, res);
@@ -42,6 +44,7 @@ async function update(req, res) {
 async function remove(req, res) {
   try {
     await cancelBooking(req.params.id, req.user);
+    logEvent('booking_canceled', req.user.sub, `Booking ${req.params.id} canceled`);
     res.status(204).send();
   } catch (err) {
     handleError(err, res);

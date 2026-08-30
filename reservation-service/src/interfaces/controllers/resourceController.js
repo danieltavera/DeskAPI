@@ -3,6 +3,7 @@ const createResource = require('../../use-cases/createResource');
 const updateResource = require('../../use-cases/updateResource');
 const deleteResource = require('../../use-cases/deleteResource');
 const AppError = require('../../use-cases/AppError');
+const { logEvent } = require('../../infrastructure/http/activityLogger');
 
 function handleError(err, res) {
   if (err instanceof AppError) {
@@ -24,6 +25,7 @@ async function list(req, res) {
 async function create(req, res) {
   try {
     const resource = await createResource(req.body, req.user);
+    logEvent('resource_created', req.user.sub, `Resource "${resource.name}" created`);
     res.status(201).json(resource);
   } catch (err) {
     handleError(err, res);
