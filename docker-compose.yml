@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: deskapi
+    ports:
+      # host port 5433 (not 5432) to avoid clashing with a local Postgres install —
+      # the 3 services still reach it internally as "postgres:5432", this is only for optional inspection
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/deskapi
+      AUTH_PORT: 3001
+      JWT_SECRET: xC3yavwlVI2pmCwrdJn759e5YWBmd1CFa8yWIkhSHIZ8zuG/lbglxDQuss4LuC0w
+      JWT_REFRESH_SECRET: gTmgSspPxRE/q+s+J3F5QbvX8DMLGnToML9moWCoxtKSi7Re82Qy+RHVhExJqamK
+      ACTIVITY_API_URL: http://activity-service:3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  reservation-service:
+    build:
+      context: .
+      dockerfile: reservation-service/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/deskapi
+      RESERVATION_PORT: 3002
+      JWT_SECRET: xC3yavwlVI2pmCwrdJn759e5YWBmd1CFa8yWIkhSHIZ8zuG/lbglxDQuss4LuC0w
+      HOLIDAY_API_URL: https://nagerholidays.com/api/v4
+      HOLIDAY_COUNTRY_CODE: AU
+      ACTIVITY_API_URL: http://activity-service:3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  activity-service:
+    build:
+      context: .
+      dockerfile: activity-service/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/deskapi
+      ACTIVITY_PORT: 3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
