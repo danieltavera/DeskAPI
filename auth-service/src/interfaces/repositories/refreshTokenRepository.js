@@ -13,4 +13,9 @@ async function removeAllForUser(userId) {
   await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
 }
 
-module.exports = { create, removeAllForUser };
+async function findByHash(tokenHash) {
+  const { rows } = await pool.query('SELECT * FROM refresh_tokens WHERE token_hash = $1', [tokenHash]);
+  return rows[0] || null;
+}
+
+module.exports = { create, removeAllForUser, findByHash };

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const registerUser = require('../../use-cases/registerUser');
 const loginUser = require('../../use-cases/loginUser');
 const logoutUser = require('../../use-cases/logoutUser');
+const refreshAccessToken = require('../../use-cases/refreshAccessToken');
 const AppError = require('../../use-cases/AppError');
 const { logEvent } = require('../../infrastructure/http/activityLogger');
 
@@ -45,4 +46,17 @@ async function logout(req, res) {
   }
 }
 
-module.exports = { register, login, logout };
+async function refresh(req, res) {
+  try {
+    const tokens = await refreshAccessToken(req.body);
+    res.status(200).json(tokens); // 200 New access token issued
+  } catch (err) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+module.exports = { register, login, logout, refresh };

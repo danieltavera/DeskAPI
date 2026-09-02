@@ -30,4 +30,9 @@ async function create({ name, email, passwordHash, role }) {
   return mapRow(rows[0]);
 }
 
-module.exports = { findByEmail, create };
+async function findById(id) {
+  const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+  return rows[0] ? mapRow(rows[0]) : null;
+}
+
+module.exports = { findByEmail, findById, create };

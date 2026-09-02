@@ -34,8 +34,10 @@ forms.login.addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Invalid credentials');
     localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
     // shared across services on other localhost ports (cookies ignore the port, unlike localStorage)
     document.cookie = `accessToken=${data.accessToken}; path=/; max-age=3600`;
+    document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=604800`;
     showMessage('Logged in successfully', 'success');
     window.location.href = 'http://localhost:3002';
   } catch (err) {
@@ -69,7 +71,9 @@ forms.register.addEventListener('submit', async (e) => {
     if (!loginRes.ok) throw new Error(loginData.message || 'Could not log in');
 
     localStorage.setItem('accessToken', loginData.accessToken);
+    localStorage.setItem('refreshToken', loginData.refreshToken);
     document.cookie = `accessToken=${loginData.accessToken}; path=/; max-age=3600`;
+    document.cookie = `refreshToken=${loginData.refreshToken}; path=/; max-age=604800`;
     window.location.href = 'http://localhost:3002';
   } catch (err) {
     showMessage(err.message, 'error');

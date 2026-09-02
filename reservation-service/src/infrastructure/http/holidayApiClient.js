@@ -19,9 +19,12 @@ async function getHolidays(countryCode, year) {
 // a holiday blocks the date if it's national, or if it's regional and matches the resource's stateCode (e.g. AU-VIC)
 async function findHolidayForDate(countryCode, date, stateCode = null) {
   try {
-    const year = new Date(date).getFullYear();
+    // read the calendar date straight from the string (first 10 chars, "YYYY-MM-DD") instead of
+    // going through `new Date(...)`, which silently reinterprets offset-less strings using the
+    // server's local timezone and can shift the date to the day before (see the TIMESTAMPTZ bug)
+    const dateStr = String(date).slice(0, 10);
+    const year = Number(dateStr.slice(0, 4));
     const holidays = await getHolidays(countryCode, year);
-    const dateStr = new Date(date).toISOString().slice(0, 10);
     return (
       holidays.find(
         (h) =>

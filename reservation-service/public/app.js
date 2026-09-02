@@ -84,6 +84,42 @@ function authHeaders() {
   };
 }
 
+// silently exchanges the refreshToken cookie for a new accessToken
+async function tryRefreshAccessToken() {
+  const refreshToken = getCookie('refreshToken');
+  if (!refreshToken) return false;
+
+  try {
+    const res = await fetch('http://localhost:3001/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) return false;
+
+    const data = await res.json();
+    localStorage.setItem('accessToken', data.accessToken);
+    document.cookie = `accessToken=${data.accessToken}; path=/; max-age=3600`;
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// fetch wrapper: on a 401 (expired access token), refreshes it once and retries the same request
+async function authFetch(url, options = {}) {
+  let res = await fetch(url, { ...options, headers: authHeaders() });
+
+  if (res.status === 401) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      res = await fetch(url, { ...options, headers: authHeaders() });
+    }
+  }
+
+  return res;
+}
+
 function applyAdminVisibility() {
   const isAdmin = getCurrentUserRole() === 'admin';
   document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
@@ -91,7 +127,7 @@ function applyAdminVisibility() {
 
 async function loadResources() {
   try {
-    const res = await fetch('/api/resources', { headers: authHeaders() });
+    const res = await authFetch('/api/resources');
     const resources = await res.json();
     resourcesCache = resources;
     renderTypeOptions(resources);
@@ -104,7 +140,7 @@ async function loadResources() {
 
 async function loadResourceTypes() {
   try {
-    const res = await fetch('/api/resource-types', { headers: authHeaders() });
+    const res = await authFetch('/api/resource-types');
     const types = await res.json();
     resourceTypeSelect.innerHTML =
       types.map((t) => `<option value="${t.name}">${t.name}</option>`).join('') +
@@ -112,13 +148,18 @@ async function loadResourceTypes() {
   } catch (err) {
     resourceTypeSelect.innerHTML = '<option value="__new__">+ Add new type...</option>';
   }
+  // recompute right away — if "+ Add new type..." ends up being the only (and pre-selected)
+  // option, the "change" event below never fires, so the new-type input would stay hidden
+  updateResourceTypeNewVisibility();
 }
 
-resourceTypeSelect.addEventListener('change', () => {
+function updateResourceTypeNewVisibility() {
   const isNew = resourceTypeSelect.value === '__new__';
   resourceTypeNewInput.classList.toggle('hidden', !isNew);
   resourceTypeNewInput.required = isNew;
-});
+}
+
+resourceTypeSelect.addEventListener('change', updateResourceTypeNewVisibility);
 
 function resourceName(resourceId) {
   const resource = resourcesCache.find((r) => String(r.id) === String(resourceId));
@@ -131,7 +172,7 @@ function toDatetimeLocal(value) {
 
 async function loadMyBookings() {
   try {
-    const res = await fetch('/api/bookings', { headers: authHeaders() });
+    const res = await authFetch('/api/bookings');
     const bookings = await res.json();
     renderBookings(bookings);
   } catch (err) {
@@ -190,9 +231,8 @@ async function saveBookingEdit(id) {
   const endTime = document.getElementById(`edit-end-${id}`).value;
 
   try {
-    const res = await fetch(`/api/bookings/${id}`, {
+    const res = await authFetch(`/api/bookings/${id}`, {
       method: 'PUT',
-      headers: authHeaders(),
       body: JSON.stringify({ startTime, endTime }),
     });
     if (!res.ok) {
@@ -210,7 +250,7 @@ async function deleteBooking(id) {
   if (!confirm('Cancel this booking?')) return;
 
   try {
-    const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE', headers: authHeaders() });
+    const res = await authFetch(`/api/bookings/${id}`, { method: 'DELETE' });
     if (!res.ok && res.status !== 204) {
       const data = await res.json();
       throw new Error(data.message || 'Could not cancel booking');
@@ -231,15 +271,26 @@ function renderTypeOptions(resources) {
 function renderResourceOptions(selectedType) {
   if (!selectedType) {
     resourceSelect.innerHTML = '<option value="" disabled selected>Select your resource</option>';
+    updateResourceLocationInfo();
     return;
   }
   const filtered = resourcesCache.filter((r) => r.type === selectedType);
   resourceSelect.innerHTML = filtered.length
     ? filtered.map((r) => `<option value="${r.id}">${r.name}</option>`).join('')
     : '<option value="">No resources of this type</option>';
+  // renderResourceOptions() re-selects a default option without firing "change",
+  // so refresh the location info right away instead of waiting on the resourceSelect listener
+  updateResourceLocationInfo();
+}
+
+function updateResourceLocationInfo() {
+  const locationInfo = document.getElementById('resource-location-info');
+  const resource = resourcesCache.find((r) => String(r.id) === String(resourceSelect.value));
+  locationInfo.textContent = resource ? `Available in: ${resource.location}` : '';
 }
 
 typeSelect.addEventListener('change', () => renderResourceOptions(typeSelect.value));
+resourceSelect.addEventListener('change', updateResourceLocationInfo);
 
 document.getElementById('booking-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -255,9 +306,8 @@ document.getElementById('booking-form').addEventListener('submit', async (e) => 
   }
 
   try {
-    const res = await fetch('/api/bookings', {
+    const res = await authFetch('/api/bookings', {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ resourceId, startTime, endTime }),
     });
     const data = await res.json();
@@ -299,9 +349,8 @@ document.getElementById('resource-form').addEventListener('submit', async (e) =>
   const attributes = collectAttributes();
 
   try {
-    const res = await fetch('/api/resources', {
+    const res = await authFetch('/api/resources', {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ name, type, location, stateCode, attributes }),
     });
     const data = await res.json();
@@ -335,6 +384,8 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
     // even if the request fails, clear the local session so the user isn't stuck
   }
   localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
   document.cookie = 'accessToken=; path=/; max-age=0';
+  document.cookie = 'refreshToken=; path=/; max-age=0';
   window.location.href = 'http://localhost:3001';
 });
