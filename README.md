@@ -31,8 +31,6 @@ Wait until you see all 3 services print `listening on port ...` in the terminal.
 | Service | URL |
 |---|---|
 | Auth (login / sign up) | http://localhost:3001 |
-| Resources & Bookings | http://localhost:3002 |
-| Activity log | http://localhost:3003 |
 
 ### 4. Log in as the seeded admin
 ```
