@@ -44,7 +44,25 @@ Logging in redirects you automatically to the resources/bookings page, where the
 
 You can also register a brand-new account from http://localhost:3001 (Sign up tab) — new accounts always get the regular `user` role.
 
-### 5. Stop everything
+### 5. Creating a new resource (as admin)
+Once logged in as admin, an **"Add resource"** panel appears on the page. Only admins can create resources.
+
+1. **Name**: any label, e.g. `Conference Room A`.
+2. **Type**: pick an existing type from the list, or choose `+ Add new type...` and type a new one, e.g. `Room`. New types are created automatically — no setup needed beforehand.
+3. **Location**: pick a city from the list, or `Other` to type your own.
+4. **Attributes** (optional): extra key/value details specific to this resource, e.g. `capacity = 10`. Leave empty if not needed.
+
+**Example:**
+| Field | Value |
+|---|---|
+| Name | `Conference Room A` |
+| Type | `Room` |
+| Location | `Melbourne, VIC` |
+| Attributes | `capacity: 10` |
+
+Click **Save** — the new resource is now available for anyone to book.
+
+### 6. Stop everything
 ```bash
 docker compose down
 ```
