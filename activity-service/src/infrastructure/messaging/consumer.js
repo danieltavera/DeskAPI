@@ -24,6 +24,12 @@ async function startConsumer() {
 
   console.log(`activity-service: listening for events on RabbitMQ queue "${QUEUE_NAME}"`);
 
+  // an unhandled 'error' event on a Node EventEmitter crashes the whole process —
+  // this listener must exist even if empty, "close" below handles the actual reconnect
+  conn.on('error', (err) => {
+    console.warn('RabbitMQ connection error:', err.message);
+  });
+
   // if the broker restarts or drops the connection, reconnect instead of going silent forever
   conn.on('close', () => {
     console.warn('RabbitMQ connection closed, retrying in 3s...');
