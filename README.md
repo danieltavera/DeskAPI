@@ -1,4 +1,7 @@
-# DeskAPI - bit.ly/deskapi
+# bit.ly/deskapi
+
+
+# DeskAPI
 
 Backend system (REST API) for booking shared resources — meeting rooms, TVs, sports courts, equipment, etc.
 
