@@ -1,0 +1,36 @@
+const amqp = require('amqplib');
+const createLog = require('../../use-cases/createLog');
+
+const QUEUE_NAME = 'activity_logs';
+const RECONNECT_DELAY_MS = 3000;
+
+async function startConsumer() {
+  const url = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+  const conn = await amqp.connect(url);
+  const channel = await conn.createChannel();
+  await channel.assertQueue(QUEUE_NAME, { durable: true });
+
+  channel.consume(QUEUE_NAME, async (msg) => {
+    if (!msg) return;
+    try {
+      const data = JSON.parse(msg.content.toString());
+      await createLog(data);
+      channel.ack(msg);
+    } catch (err) {
+      console.error('Failed to process activity log message:', err.message);
+      channel.nack(msg, false, false); // discard malformed messages instead of requeueing forever
+    }
+  });
+
+  console.log(`activity-service: listening for events on RabbitMQ queue "${QUEUE_NAME}"`);
+
+  // if the broker restarts or drops the connection, reconnect instead of going silent forever
+  conn.on('close', () => {
+    console.warn('RabbitMQ connection closed, retrying in 3s...');
+    setTimeout(() => {
+      startConsumer().catch((err) => console.warn('RabbitMQ reconnect failed:', err.message));
+    }, RECONNECT_DELAY_MS);
+  });
+}
+
+module.exports = { startConsumer };

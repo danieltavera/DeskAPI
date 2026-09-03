@@ -18,6 +18,17 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   auth-service:
     build:
       context: .
@@ -30,8 +41,11 @@ services:
       JWT_SECRET: xC3yavwlVI2pmCwrdJn759e5YWBmd1CFa8yWIkhSHIZ8zuG/lbglxDQuss4LuC0w
       JWT_REFRESH_SECRET: gTmgSspPxRE/q+s+J3F5QbvX8DMLGnToML9moWCoxtKSi7Re82Qy+RHVhExJqamK
       ACTIVITY_API_URL: http://activity-service:3003
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   reservation-service:
@@ -47,8 +61,11 @@ services:
       HOLIDAY_API_URL: https://nagerholidays.com/api/v4
       HOLIDAY_COUNTRY_CODE: AU
       ACTIVITY_API_URL: http://activity-service:3003
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   activity-service:
@@ -60,8 +77,11 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/deskapi
       ACTIVITY_PORT: 3003
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
 volumes:

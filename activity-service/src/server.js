@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const logRoutes = require('./interfaces/controllers/logRoutes');
+const { startConsumer } = require('./infrastructure/messaging/consumer');
 
 const app = express();
 app.use(cors());
@@ -15,3 +16,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok', service: 'activity-ser
 
 const PORT = process.env.ACTIVITY_PORT || 3003;
 app.listen(PORT, () => console.log(`activity-service listening on port ${PORT}`));
+
+// the HTTP API keeps working on its own even if RabbitMQ isn't reachable yet
+startConsumer().catch((err) => {
+  console.warn('Could not start RabbitMQ consumer:', err.message);
+});
