@@ -10,7 +10,8 @@
     "dev:reservation": "node --watch reservation-service/src/server.js",
     "dev:activity": "node --watch activity-service/src/server.js",
     "start:all": "concurrently -n auth,reservation,activity -c blue,green,yellow \"npm run start:auth\" \"npm run start:reservation\" \"npm run start:activity\"",
-    "test": "node --test auth-service/tests/auth.test.js"
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "amqplib": "^2.0.1",
@@ -23,6 +24,7 @@
     "pg": "^8.12.0"
   },
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.5",
+    "jest": "^30.5.1"
   }
 }
